@@ -41,6 +41,9 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
       final field = fields[i];
       scriptBuffer.write(' [${field.name}] ${field.type}');
 
+      if (field.primaryKey) scriptBuffer.write(' PRIMARY KEY');
+      if (field.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
+
       scriptBuffer.writeln(i != fields.length - 1 ? ',' : '');
     }
 

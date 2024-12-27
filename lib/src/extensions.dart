@@ -10,3 +10,7 @@ extension StringExtension on String {
     return firstLetter + substring(1);
   }
 }
+
+String typeToString<T>() {
+  return T.toString();
+}
