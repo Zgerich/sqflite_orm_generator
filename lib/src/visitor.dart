@@ -4,13 +4,11 @@ import 'package:sqflite_orm/sqflite_orm.dart';
 import 'package:sqflite_orm_generator/src/extensions.dart';
 
 class FieldMetadata {
-  final String name;
   final FieldType type;
   final bool primaryKey;
   final bool autoincrement;
 
   FieldMetadata({
-    required this.name,
     required this.type,
     this.primaryKey = false,
     this.autoincrement = false,
@@ -18,7 +16,7 @@ class FieldMetadata {
 }
 
 class FieldsVisitor extends SimpleElementVisitor<void> {
-  List<FieldMetadata> fields = [];
+  Map<String, FieldMetadata> fields = {};
 
   static Set<String> get acceptabledAnnotations => {
         typeToString<Ignore>(),
@@ -49,7 +47,8 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
     final isPrimaryKey = column?.getField('primaryKey')?.toBoolValue() ?? false;
     final isAutoincrement =
         column?.getField('autoincrement')?.toBoolValue() ?? false;
-    final columnName = column?.getField('name')?.toStringValue();
+    final columnName =
+        column?.getField('name')?.toStringValue() ?? element.name;
 
     //get field type
     final sqliteType = switch (elementType) {
@@ -59,12 +58,21 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
       _ => FieldType.blob,
     };
 
-    fields.add(FieldMetadata(
-      name: columnName ?? element.name,
+    final canApplyAutoincrement =
+        isAutoincrement && isPrimaryKey && sqliteType == FieldType.integer;
+    if (!canApplyAutoincrement && isAutoincrement) {
+      throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns with 'PRIMARY KEY' keyword";
+    }
+
+    if (fields.containsKey(columnName)) {
+      throw 'The table already contains column with name [$columnName]';
+    }
+
+    fields[columnName] = FieldMetadata(
       type: sqliteType,
       primaryKey: isPrimaryKey,
-      autoincrement: isAutoincrement,
-    ));
+      autoincrement: canApplyAutoincrement,
+    );
     super.visitFieldElement(element);
   }
 }

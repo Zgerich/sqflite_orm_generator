@@ -32,19 +32,20 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
   }
 
   String _generateCreateTableScript(
-      List<FieldMetadata> fields, String tableName) {
+      Map<String, FieldMetadata> fields, String tableName) {
     final scriptBuffer = StringBuffer()
       ..writeln()
       ..writeln('CREATE TABLE IF NOT EXISTS [$tableName] (');
 
-    for (int i = 0; i < fields.length; i++) {
-      final field = fields[i];
-      scriptBuffer.write(' [${field.name}] ${field.type}');
+    for (final fieldEntry in fields.entries) {
+      final field = fieldEntry.value;
+
+      scriptBuffer.write(' [${fieldEntry.key}] ${field.type}');
 
       if (field.primaryKey) scriptBuffer.write(' PRIMARY KEY');
       if (field.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
 
-      scriptBuffer.writeln(i != fields.length - 1 ? ',' : '');
+      scriptBuffer.writeln(fields.entries.last == fieldEntry ? ',' : '');
     }
 
     scriptBuffer.writeln(');');
