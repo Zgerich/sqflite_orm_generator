@@ -38,15 +38,16 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
       ..writeln()
       ..writeln('CREATE TABLE IF NOT EXISTS [$tableName] (');
 
-    for (final columnEntry in columns.entries) {
-      final column = columnEntry.value;
+    for (final columnName in columns.keys) {
+      final column = columns[columnName]!;
 
-      scriptBuffer.write(' [${columnEntry.key}] ${column.type}');
+      scriptBuffer.write(' [$columnName] ${column.type}');
 
       if (column.primaryKey) scriptBuffer.write(' PRIMARY KEY');
       if (column.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
+      if (!column.acceptsNull) scriptBuffer.write(' NOT NULL');
 
-      scriptBuffer.writeln(columns.entries.last == columnEntry ? ',' : '');
+      scriptBuffer.writeln(columns.keys.last != columnName ? ',' : '');
     }
 
     scriptBuffer.writeln(');');

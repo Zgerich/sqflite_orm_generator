@@ -1,19 +1,8 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/visitor.dart';
 import 'package:sqflite_orm/sqflite_orm.dart';
 import 'package:sqflite_orm_generator/src/extensions.dart';
-
-class ColumnMetadata {
-  final ColumnType type;
-  final bool primaryKey;
-  final bool autoincrement;
-
-  ColumnMetadata({
-    required this.type,
-    this.primaryKey = false,
-    this.autoincrement = false,
-  });
-}
 
 class FieldsVisitor extends SimpleElementVisitor<void> {
   Map<String, ColumnMetadata> tableColumns = {};
@@ -25,7 +14,6 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
 
   @override
   void visitFieldElement(FieldElement element) {
-    String elementType = element.type.toString();
     final fieldAnnotations = element.metadata.where((annotation) =>
         annotation.element?.kind == ElementKind.CONSTRUCTOR &&
         acceptabledAnnotations.contains(annotation.element?.displayName));
@@ -50,8 +38,8 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
     final columnName =
         column?.getField('name')?.toStringValue() ?? element.name;
 
-    //get column type
-    final sqliteType = switch (elementType) {
+    //TODO: Add validations for nullable columns
+    final sqliteType = switch (element.type.getDisplayString()) {
       'int' => ColumnType.integer,
       'String' => ColumnType.text,
       'double' => ColumnType.real,
@@ -72,9 +60,24 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
       type: sqliteType,
       primaryKey: isPrimaryKey,
       autoincrement: canApplyAutoincrement,
+      acceptsNull: element.type.nullabilitySuffix == NullabilitySuffix.question,
     );
     super.visitFieldElement(element);
   }
+}
+
+class ColumnMetadata {
+  final ColumnType type;
+  final bool primaryKey;
+  final bool autoincrement;
+  final bool acceptsNull;
+
+  ColumnMetadata({
+    required this.type,
+    required this.primaryKey,
+    required this.autoincrement,
+    required this.acceptsNull,
+  });
 }
 
 enum ColumnType {
