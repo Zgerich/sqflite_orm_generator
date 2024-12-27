@@ -3,12 +3,12 @@ import 'package:analyzer/dart/element/visitor.dart';
 import 'package:sqflite_orm/sqflite_orm.dart';
 import 'package:sqflite_orm_generator/src/extensions.dart';
 
-class FieldMetadata {
-  final FieldType type;
+class ColumnMetadata {
+  final ColumnType type;
   final bool primaryKey;
   final bool autoincrement;
 
-  FieldMetadata({
+  ColumnMetadata({
     required this.type,
     this.primaryKey = false,
     this.autoincrement = false,
@@ -16,7 +16,7 @@ class FieldMetadata {
 }
 
 class FieldsVisitor extends SimpleElementVisitor<void> {
-  Map<String, FieldMetadata> fields = {};
+  Map<String, ColumnMetadata> tableColumns = {};
 
   static Set<String> get acceptabledAnnotations => {
         typeToString<Ignore>(),
@@ -50,25 +50,25 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
     final columnName =
         column?.getField('name')?.toStringValue() ?? element.name;
 
-    //get field type
+    //get column type
     final sqliteType = switch (elementType) {
-      'int' => FieldType.integer,
-      'String' => FieldType.text,
-      'double' => FieldType.real,
-      _ => FieldType.blob,
+      'int' => ColumnType.integer,
+      'String' => ColumnType.text,
+      'double' => ColumnType.real,
+      _ => ColumnType.blob,
     };
 
     final canApplyAutoincrement =
-        isAutoincrement && isPrimaryKey && sqliteType == FieldType.integer;
+        isAutoincrement && isPrimaryKey && sqliteType == ColumnType.integer;
     if (!canApplyAutoincrement && isAutoincrement) {
       throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns with 'PRIMARY KEY' keyword";
     }
 
-    if (fields.containsKey(columnName)) {
+    if (tableColumns.containsKey(columnName)) {
       throw 'The table already contains column with name [$columnName]';
     }
 
-    fields[columnName] = FieldMetadata(
+    tableColumns[columnName] = ColumnMetadata(
       type: sqliteType,
       primaryKey: isPrimaryKey,
       autoincrement: canApplyAutoincrement,
@@ -77,7 +77,7 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
   }
 }
 
-enum FieldType {
+enum ColumnType {
   integer,
   text,
   real,

@@ -23,7 +23,8 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
     final FieldsVisitor visitor = FieldsVisitor();
     element.visitChildren(visitor);
 
-    final createScript = _generateCreateTableScript(visitor.fields, tableName);
+    final createScript =
+        _generateCreateTableScript(visitor.tableColumns, tableName);
     buffer.writeln("String get createScript => '''$createScript''';");
 
     buffer.writeln('}');
@@ -32,20 +33,20 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
   }
 
   String _generateCreateTableScript(
-      Map<String, FieldMetadata> fields, String tableName) {
+      Map<String, ColumnMetadata> columns, String tableName) {
     final scriptBuffer = StringBuffer()
       ..writeln()
       ..writeln('CREATE TABLE IF NOT EXISTS [$tableName] (');
 
-    for (final fieldEntry in fields.entries) {
-      final field = fieldEntry.value;
+    for (final columnEntry in columns.entries) {
+      final column = columnEntry.value;
 
-      scriptBuffer.write(' [${fieldEntry.key}] ${field.type}');
+      scriptBuffer.write(' [${columnEntry.key}] ${column.type}');
 
-      if (field.primaryKey) scriptBuffer.write(' PRIMARY KEY');
-      if (field.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
+      if (column.primaryKey) scriptBuffer.write(' PRIMARY KEY');
+      if (column.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
 
-      scriptBuffer.writeln(fields.entries.last == fieldEntry ? ',' : '');
+      scriptBuffer.writeln(columns.entries.last == columnEntry ? ',' : '');
     }
 
     scriptBuffer.writeln(');');
