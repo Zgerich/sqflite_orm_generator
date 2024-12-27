@@ -1,7 +1,12 @@
 library sqflite_orm_generator;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
+import 'package:build/build.dart';
+import 'package:source_gen/source_gen.dart';
+import 'package:sqflite_orm_generator/src/generator.dart';
+
+Builder generateData(BuilderOptions options) {
+  return SharedPartBuilder(
+    [SqfliteOrmGenerator()],
+    'sqflite_orm',
+  );
 }

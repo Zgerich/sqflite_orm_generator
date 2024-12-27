@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      sqflite_orm_generator|sqflite_orm:
+        enabled: true
+       
+builders:
+  sqflite_orm_generator|sqflite_orm:
+    target: ":sqflite_orm_generator" # Generator name
+    import: "package:sqflite_orm_generator/sqflite_orm_generator.dart"
+    builder_factories: ["generateData"] # Builder name(BuilderOption) this is a definition
+    build_extensions: { ".dart": [".g.part"] }
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: ["source_gen|combining_builder"]  
