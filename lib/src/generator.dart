@@ -25,7 +25,7 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
 
     final createScript =
         _generateCreateTableScript(visitor.tableColumns, tableName);
-    buffer.writeln("String get createScript => '''$createScript''';");
+    buffer.writeln("String get createQuery => '''$createScript''';");
 
     buffer.writeln('}');
     buffer.toString();
@@ -45,7 +45,9 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
 
       if (column.primaryKey) scriptBuffer.write(' PRIMARY KEY');
       if (column.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
-      if (!column.acceptsNull) scriptBuffer.write(' NOT NULL');
+      if (!column.acceptsNull && !column.primaryKey) {
+        scriptBuffer.write(' NOT NULL');
+      }
 
       scriptBuffer.writeln(columns.keys.last != columnName ? ',' : '');
     }
