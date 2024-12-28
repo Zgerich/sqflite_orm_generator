@@ -38,16 +38,20 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
     final columnName =
         column?.getField('name')?.toStringValue() ?? element.name;
 
-    //TODO: Add validations for nullable columns
     final sqliteType = switch (element.type.getDisplayString()) {
       'int' => ColumnType.integer,
       'String' => ColumnType.text,
       'double' => ColumnType.real,
       _ => ColumnType.blob,
     };
+    final acceptsNull =
+        element.type.nullabilitySuffix == NullabilitySuffix.question;
 
-    final canApplyAutoincrement =
-        isAutoincrement && isPrimaryKey && sqliteType == ColumnType.integer;
+    final canApplyAutoincrement = isAutoincrement &&
+        isPrimaryKey &&
+        sqliteType == ColumnType.integer &&
+        !acceptsNull;
+
     if (!canApplyAutoincrement && isAutoincrement) {
       throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns with 'PRIMARY KEY' keyword";
     }
@@ -60,7 +64,7 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
       type: sqliteType,
       primaryKey: isPrimaryKey,
       autoincrement: canApplyAutoincrement,
-      acceptsNull: element.type.nullabilitySuffix == NullabilitySuffix.question,
+      acceptsNull: acceptsNull,
     );
     super.visitFieldElement(element);
   }
