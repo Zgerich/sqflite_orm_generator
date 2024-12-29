@@ -2,7 +2,6 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:sqflite_orm/sqflite_orm.dart';
-import 'package:sqflite_orm_generator/src/extensions.dart';
 import 'package:sqflite_orm_generator/src/visitor.dart';
 
 class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
@@ -17,17 +16,15 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
     final buffer = StringBuffer()
       ..writeln(
           '// This file contains code of SQL queries for table $tableName')
-      ..writeln()
-      ..writeln('extension ${tableName.capitalize()}Extension on $className {');
+      ..writeln();
 
     final FieldsVisitor visitor = FieldsVisitor();
     element.visitChildren(visitor);
 
     final createScript =
         _generateCreateTableScript(visitor.tableColumns, tableName);
-    buffer.writeln("String get createQuery => '''$createScript''';");
+    buffer.writeln("String _\$CreateQuery() => '''$createScript''';");
 
-    buffer.writeln('}');
     buffer.toString();
     return buffer.toString();
   }
