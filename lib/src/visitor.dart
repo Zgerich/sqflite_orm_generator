@@ -14,6 +14,8 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
 
   @override
   void visitFieldElement(FieldElement element) {
+    if (element.isStatic) return;
+
     final fieldAnnotations = element.metadata.where((annotation) =>
         annotation.element?.kind == ElementKind.CONSTRUCTOR &&
         acceptabledAnnotations.contains(annotation.element?.displayName));
@@ -32,39 +34,42 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
           'Found more than one @Column annotation, first annotation will be applied!');
     }
     final column = columnAnnotations.firstOrNull?.computeConstantValue();
-    final isPrimaryKey = column?.getField('primaryKey')?.toBoolValue() ?? false;
-    final isAutoincrement =
-        column?.getField('autoincrement')?.toBoolValue() ?? false;
     final columnName =
         column?.getField('name')?.toStringValue() ?? element.name;
 
+    final constrainValue =
+        column?.getField('constraint')?.getField('value')?.toIntValue();
+    final constraint = constrainValue != null
+        ? ColumnConstraint.fromValue(constrainValue)
+        : null;
+
     final sqliteType = switch (element.type.getDisplayString()) {
-      'int' => ColumnType.integer,
-      'String' => ColumnType.text,
-      'double' => ColumnType.real,
+      'int' || 'int?' => ColumnType.integer,
+      'String' || 'String?' => ColumnType.text,
+      'double' || 'double?' => ColumnType.real,
       _ => ColumnType.blob,
     };
     final acceptsNull =
         element.type.nullabilitySuffix == NullabilitySuffix.question;
 
-    final canApplyAutoincrement = isAutoincrement &&
-        isPrimaryKey &&
-        sqliteType == ColumnType.integer &&
-        !acceptsNull;
+    final canApplyAutoincrement =
+        constraint == ColumnConstraint.autoIncrement &&
+            sqliteType == ColumnType.integer &&
+            !acceptsNull;
 
-    if (!canApplyAutoincrement && isAutoincrement) {
-      throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns with 'PRIMARY KEY' keyword";
+    if (!canApplyAutoincrement &&
+        constraint == ColumnConstraint.autoIncrement) {
+      throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns ";
     }
 
-    if (tableColumns.containsKey(columnName)) {
-      throw 'The table already contains column with name [$columnName]';
+    if (acceptsNull && constraint == ColumnConstraint.primaryKey) {
+      throw "'PRIMARY KEY' keyword can't be applied to nullable column";
     }
 
     tableColumns[columnName] = ColumnMetadata(
       type: sqliteType,
-      primaryKey: isPrimaryKey,
-      autoincrement: canApplyAutoincrement,
       acceptsNull: acceptsNull,
+      constraint: constraint,
     );
     super.visitFieldElement(element);
   }
@@ -72,15 +77,13 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
 
 class ColumnMetadata {
   final ColumnType type;
-  final bool primaryKey;
-  final bool autoincrement;
   final bool acceptsNull;
+  final ColumnConstraint? constraint;
 
   ColumnMetadata({
     required this.type,
-    required this.primaryKey,
-    required this.autoincrement,
     required this.acceptsNull,
+    this.constraint,
   });
 }
 

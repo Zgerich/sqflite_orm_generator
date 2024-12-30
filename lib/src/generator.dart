@@ -40,9 +40,19 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
 
       scriptBuffer.write(' [$columnName] ${column.type}');
 
-      if (column.primaryKey) scriptBuffer.write(' PRIMARY KEY');
-      if (column.autoincrement) scriptBuffer.write(' AUTOINCREMENT');
-      if (!column.acceptsNull && !column.primaryKey) {
+      switch (column.constraint) {
+        case ColumnConstraint.autoIncrement:
+          scriptBuffer.write(' PRIMARY KEY AUTOINCREMENT');
+        case ColumnConstraint.primaryKey:
+          scriptBuffer.write(' PRIMARY KEY');
+        case ColumnConstraint.unique:
+          scriptBuffer.write(' UNIQUE');
+        default:
+      }
+
+      if (!column.acceptsNull &&
+          column.constraint != ColumnConstraint.autoIncrement &&
+          column.constraint != ColumnConstraint.primaryKey) {
         scriptBuffer.write(' NOT NULL');
       }
 
