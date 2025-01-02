@@ -24,6 +24,16 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
     final createScript =
         _generateCreateTableScript(visitor.tableColumns, tableName);
     buffer.writeln("String _\$CreateQuery() => '''$createScript''';");
+    buffer.writeln();
+
+    final toMapMethod = _generateToMapMethod(visitor.tableColumns, className);
+    buffer.writeln(toMapMethod);
+    buffer.writeln();
+
+    final fromMapMethod =
+        _generateFromMapMethod(visitor.tableColumns, className);
+    buffer.writeln(fromMapMethod);
+    buffer.writeln();
 
     buffer.toString();
     return buffer.toString();
@@ -61,5 +71,35 @@ class SqfliteOrmGenerator extends GeneratorForAnnotation<DBTable> {
 
     scriptBuffer.writeln(');');
     return scriptBuffer.toString();
+  }
+
+  String _generateToMapMethod(
+    Map<String, ColumnMetadata> columns,
+    String className,
+  ) {
+    final buffer = StringBuffer();
+
+    buffer.writeln(
+        'Map<String, dynamic> _\$${className}ToMap($className obj) => {');
+    for (final columnName in columns.keys) {
+      buffer.writeln("'$columnName' : obj.${columns[columnName]!.fieldName},");
+    }
+    buffer.writeln('};');
+
+    return buffer.toString();
+  }
+
+  String _generateFromMapMethod(
+      Map<String, ColumnMetadata> columns, String className) {
+    final buffer = StringBuffer();
+
+    buffer.writeln(
+        '$className _\$${className}FromMap(Map<String, dynamic> map) => $className(');
+    for (final columnName in columns.keys) {
+      buffer.writeln("${columns[columnName]!.fieldName} : map['$columnName'],");
+    }
+    buffer.writeln(');');
+
+    return buffer.toString();
   }
 }
