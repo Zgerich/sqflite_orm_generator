@@ -1,6 +1,8 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/visitor.dart';
+import 'package:build/build.dart';
+import 'package:source_gen/source_gen.dart';
 import 'package:sqflite_orm/sqflite_orm.dart';
 import 'package:sqflite_orm_generator/src/extensions.dart';
 
@@ -14,8 +16,12 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
 
   @override
   void visitFieldElement(FieldElement element) {
-    if (element.isStatic) return;
-    if (!element.isPublic) return;
+    if (element.isStatic ||
+        element.isPrivate ||
+        element.isConst ||
+        element.isSynthetic) {
+      return;
+    }
 
     final fieldAnnotations = element.metadata.where((annotation) =>
         annotation.element?.kind == ElementKind.CONSTRUCTOR &&
@@ -32,8 +38,8 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
     final columnAnnotations = fieldAnnotations.where((annotation) =>
         annotation.element?.displayName == typeToString<Column>());
     if (columnAnnotations.length > 1) {
-      print(
-          'Found more than one @Column annotation, first annotation will be applied!');
+      log.warning(
+          'Found more than one @Column annotation for one field, first annotation will be applied!');
     }
     final column = columnAnnotations.firstOrNull?.computeConstantValue();
     final columnName = column?.getField('name')?.toStringValue() ?? fieldName;
@@ -55,24 +61,26 @@ class FieldsVisitor extends SimpleElementVisitor<void> {
 
     final canApplyAutoincrement =
         constraint == ColumnConstraint.autoIncrement &&
-            sqliteType == SQLiteType.integer &&
-            !acceptsNull;
+            sqliteType == SQLiteType.integer;
 
     if (!canApplyAutoincrement &&
         constraint == ColumnConstraint.autoIncrement) {
-      throw "'AUTOINCREMENT' keyword only can be applied for INTEGER columns ";
+      throw InvalidGenerationSource(
+          "'AUTOINCREMENT' keyword only can be applied for INTEGER columns ");
     }
 
     if (acceptsNull && constraint == ColumnConstraint.primaryKey) {
-      throw "'PRIMARY KEY' keyword can't be applied to nullable column";
+      throw InvalidGenerationSource(
+          "'PRIMARY KEY' keyword can't be applied to nullable column");
     }
 
     if (acceptsNull && constraint == ColumnConstraint.unique) {
-      throw "'UNIQUE' keyword can't be applied to nullable column";
+      throw InvalidGenerationSource(
+          "'UNIQUE' keyword can't be applied to nullable column");
     }
 
     if (tableColumns[columnName] != null) {
-      throw "Found duplicate column '$columnName'";
+      throw InvalidGenerationSource("Found duplicate column '$columnName'");
     }
 
     tableColumns[columnName] = ColumnMetadata(
